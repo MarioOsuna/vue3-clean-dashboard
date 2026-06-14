@@ -1,35 +1,25 @@
-import { ref, onMounted } from 'vue'
-import type { ChartDataPoint, Metric } from '@/domain/metrics'
-import { MockMetricsRepository } from '@/infrastructure/metricsApi'
-
-const repo = new MockMetricsRepository()
+import { computed, isRef, watch, type Ref } from 'vue'
+import { useMetricsStore } from '@/stores/metrics'
 
 export function useMetrics() {
-  const metrics = ref<Metric[]>([])
-  const loading = ref(true)
-  const error = ref<string | null>(null)
+  const store = useMetricsStore()
+  store.loadMetrics()
 
-  onMounted(async () => {
-    try {
-      metrics.value = await repo.fetchMetrics()
-    } catch {
-      error.value = 'Failed to load metrics'
-    } finally {
-      loading.value = false
-    }
-  })
-
-  return { metrics, loading, error }
+  return {
+    metrics: computed(() => store.metrics),
+    loading: computed(() => store.loading),
+    error: computed(() => store.error),
+  }
 }
 
-export function useMetricChart(metricId: string) {
-  const data = ref<ChartDataPoint[]>([])
-  const loading = ref(true)
+export function useMetricChart(metricId: string | Ref<string>) {
+  const store = useMetricsStore()
+  const id = isRef(metricId) ? metricId : computed(() => metricId)
 
-  onMounted(async () => {
-    data.value = await repo.fetchChartData(metricId)
-    loading.value = false
-  })
+  watch(id, (value) => store.loadChartData(value), { immediate: true })
 
-  return { data, loading }
+  return {
+    data: computed(() => store.chartData[id.value] ?? []),
+    loading: computed(() => store.chartData[id.value] === undefined),
+  }
 }
