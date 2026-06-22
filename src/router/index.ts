@@ -1,9 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DashboardView from '@/views/DashboardView.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes: [{ path: '/', component: DashboardView }],
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    { path: '/', component: () => import('@/views/DashboardView.vue') },
+    { path: '/investigate', component: () => import('@/views/InvestigateView.vue') },
+    { path: '/events/new', component: () => import('@/views/RegisterEventView.vue') },
+    { path: '/intelligence', component: () => import('@/views/IntelligenceView.vue') },
+  ],
 })
 
 export default router
