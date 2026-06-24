@@ -1,7 +1,8 @@
 import type { SecurityEvent, CreateEventPayload } from '@/domain/events'
+import { API_BASE } from './client'
 
 export async function createEvent(payload: CreateEventPayload): Promise<SecurityEvent> {
-  const res = await fetch('/api/v1/events', {
+  const res = await fetch(`${API_BASE}/api/v1/events`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
