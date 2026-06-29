@@ -1,77 +1,77 @@
 # Cybersecurity Threat Dashboard
 
-Dashboard de análisis de amenazas en tiempo real que consume una API FastAPI de ciberseguridad. Permite visualizar indicadores de compromiso (IOCs), investigar IPs con scoring de riesgo, registrar eventos de seguridad y explorar threat intelligence.
+Real-time threat analysis dashboard that consumes a FastAPI cybersecurity API. It allows you to visualize indicators of compromise (IOCs), investigate IPs with risk scoring, register security events, and explore threat intelligence.
 
 ## Stack
 
 - **Vue 3** + **Composition API** + **TypeScript** strict
-- **Vuetify 4** — componentes Material Design con dark theme custom
-- **Vue Router 4** — navegación con lazy loading por ruta
-- **Vite 5** — build + proxy para desarrollo sin CORS
+- **Vuetify 4** — Material Design components with custom dark theme
+- **Vue Router 4** — navigation with lazy loading per route
+- **Vite 5** — build + proxy for CORS-free development
 
-## Arquitectura
+## Architecture
 
 ```
 src/
-  domain/        # Tipos TS puros (1:1 con schemas Pydantic del backend)
-  api/           # Una función tipada por endpoint, sin lógica de UI
-  composables/   # Estado reactivo + lógica de negocio por dominio
-  components/ui/ # Presentación pura (props in, events out, sin fetch)
-  plugins/       # Configuración de Vuetify (theme, defaults)
-  views/         # Orquestación de composables + componentes por ruta
-  router/        # Rutas con lazy loading
+  domain/        # Pure TS types (1:1 with backend Pydantic schemas)
+  api/           # One typed function per endpoint, no UI logic
+  composables/   # Reactive state + business logic per domain
+  components/ui/ # Pure presentation (props in, events out, no fetch)
+  plugins/       # Vuetify configuration (theme, defaults)
+  views/         # Orchestration of composables + components per route
+  router/        # Routes with lazy loading
 ```
 
-**Regla de dependencias**: `domain` no importa nada. `api` importa `domain`. `composables` importan `api` + `domain`. `views` importan `composables` + `components`. Los componentes nunca hacen fetch.
+**Dependency rule**: `domain` imports nothing. `api` imports `domain`. `composables` import `api` + `domain`. `views` import `composables` + `components`. Components never fetch data.
 
-## Vistas
+## Views
 
-| Vista | Ruta | Qué hace |
+| View | Route | Description |
 |---|---|---|
-| Dashboard | `/` | KPIs, risk score promedio, distribución por tipo, tabla de indicadores recientes |
-| Investigate IP | `/investigate` | Buscador → gauge SVG de riesgo con desglose de puntos |
-| Register Event | `/events/new` | Formulario POST con validación (IP, JSON) y toast feedback |
-| Threat Intel | `/intelligence` | Tabla filtrable de IOCs (server-side por tipo + client-side por texto) |
+| Dashboard | `/` | KPIs, average risk score, distribution by type, recent indicators table |
+| Investigate IP | `/investigate` | Search → SVG risk gauge with score breakdown |
+| Register Event | `/events/new` | POST form with validation (IP, JSON) and toast feedback |
+| Threat Intel | `/intelligence` | Filterable IOC table (server-side by type + client-side by text) |
 
-## API consumida
+## API consumed
 
-El dashboard se conecta a un backend FastAPI (`fastapi-cibersecurity`) que corre en `localhost:8000`:
+The dashboard connects to a FastAPI backend (`fastapi-cibersecurity`) running on `localhost:8000`:
 
-| Endpoint | Uso |
+| Endpoint | Usage |
 |---|---|
-| `GET /health/ready` | Status bar — polling cada 30s |
+| `GET /health/ready` | Status bar — polling every 30s |
 | `GET /api/v1/threats/indicators` | Dashboard + Threat Intel |
 | `GET /api/v1/threats/{ip}/score` | Investigate IP |
 | `POST /api/v1/events` | Register Event |
 
-El proxy de Vite redirige `/api` y `/health` al backend en desarrollo.
+The Vite proxy redirects `/api` and `/health` to the backend during development.
 
-## Cómo correrlo
+## How to run
 
 ```bash
-# 1. Levantar el backend (en el repo fastapi-cibersecurity)
+# 1. Start the backend (in the fastapi-cibersecurity repo)
 docker compose up -d
 
-# 2. Instalar dependencias e iniciar el dashboard
+# 2. Install dependencies and start the dashboard
 npm install
 npm run dev
 ```
 
 ## CI/CD
 
-GitHub Actions con dos workflows:
+GitHub Actions with two workflows:
 
-- **CI** (`ci.yml`) — type-check + build en PRs y pushes a main
-- **Deploy** (`deploy.yml`) — build y deploy a GitHub Pages en push a main
+- **CI** (`ci.yml`) — type-check + build on PRs and pushes to main
+- **Deploy** (`deploy.yml`) — build and deploy to GitHub Pages on push to main
 
-## Decisiones técnicas
+## Technical decisions
 
-**Tipos como contrato**: las interfaces en `domain/` replican exactamente los schemas Pydantic del backend. Si la API cambia, el error de tipos salta en build time.
+**Types as contract**: the interfaces in `domain/` exactly replicate the backend's Pydantic schemas. If the API changes, type errors are caught at build time.
 
-**Composables como capa de aplicación**: `useThreatScore()`, `useIndicators()`, `useHealthCheck()` encapsulan loading/error/data y las llamadas a la API. Las vistas solo consumen refs reactivas.
+**Composables as application layer**: `useThreatScore()`, `useIndicators()`, `useHealthCheck()` encapsulate loading/error/data and API calls. Views only consume reactive refs.
 
-**Componentes de presentación puros**: `SeverityBadge` y `RiskGauge` reciben props y no tienen side effects. El gauge es SVG puro con aguja animada y zonas de color (verde/amarillo/naranja/rojo).
+**Pure presentation components**: `SeverityBadge` and `RiskGauge` receive props and have no side effects. The gauge is pure SVG with an animated needle and color zones (green/yellow/orange/red).
 
-**Toast como estado singleton**: `useToast()` comparte estado a nivel de módulo (no de instancia) para que cualquier vista pueda mostrar notificaciones sin prop drilling.
+**Toast as singleton state**: `useToast()` shares state at module level (not instance level) so any view can display notifications without prop drilling.
 
-**Sin Pinia para este alcance**: los composables con module-scope o instance-scope state cubren las necesidades actuales. Pinia queda disponible si el estado compartido crece.
+**No Pinia for this scope**: composables with module-scope or instance-scope state cover current needs. Pinia remains available if shared state grows.
